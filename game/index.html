@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Port Azura: Heat — an open-world crime game</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" class="hidden">
+    <div id="topbar">
+      <div id="wanted" title="Wanted level"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+      <div id="clock">17:42</div>
+    </div>
+    <div id="objective" class="hidden"><span id="objective-tag">OBJECTIVE</span><span id="objective-text"></span></div>
+    <div id="toast" class="hidden"></div>
+    <div id="dialogue" class="hidden"><div id="dialogue-name"></div><div id="dialogue-text"></div><div id="dialogue-hint">ENTER ▸</div></div>
+    <div id="bottomleft">
+      <canvas id="minimap" width="220" height="220"></canvas>
+      <div id="district">Marina District</div>
+    </div>
+    <div id="bottomright">
+      <div id="cash">$0</div>
+      <div id="weapon">PISTOL · ∞</div>
+      <div id="bars">
+        <div class="bar-row"><span class="bar-label">HP</span><div class="bar"><div id="health-fill"></div></div></div>
+        <div class="bar-row"><span class="bar-label">CAR</span><div class="bar"><div id="car-fill"></div></div></div>
+      </div>
+      <div id="speedo" class="hidden">0 km/h</div>
+    </div>
+    <div id="busted-meter" class="hidden"><div id="busted-fill"></div><span>BUSTED</span></div>
+    <div id="crosshair" class="hidden">·</div>
+    <div id="prompt" class="hidden"></div>
+    <div id="mission-banner" class="hidden"><div id="mission-banner-title"></div><div id="mission-banner-sub"></div></div>
+  </div>
+
+  <!-- Title screen -->
+  <div id="menu">
+    <div id="menu-card">
+      <div id="logo">PORT AZURA</div>
+      <div id="logo-sub">— H E A T —</div>
+      <p id="tagline">One wheelman. One sun-soaked city. Every cop in Port Azura.</p>
+      <button id="btn-new" class="menu-btn">NEW GAME</button>
+      <button id="btn-continue" class="menu-btn" disabled>CONTINUE</button>
+      <button id="btn-how" class="menu-btn ghost">HOW TO PLAY</button>
+      <div id="how" class="hidden">
+        <p><b>W A S D</b> move / drive · <b>Mouse</b> camera (click the game to lock the pointer)</p>
+        <p><b>Shift</b> sprint · <b>Space</b> jump / handbrake · <b>F</b> enter / exit car</p>
+        <p><b>Left mouse</b> shoot · <b>Q</b> punch · <b>Esc</b> pause · <b>M</b> mute · <b>Enter</b> advance dialogue</p>
+        <p>Steal cars, run Lucia's jobs, dodge the Azura PD. Five stars is a bad day.</p>
+      </div>
+      <p id="menu-foot">An original open-world crime game. All names, places and people are fictional.</p>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel">
+      <h2>PAUSED</h2>
+      <p id="pause-stats"></p>
+      <button id="btn-resume" class="menu-btn">RESUME</button>
+      <button id="btn-save" class="menu-btn">SAVE GAME</button>
+      <button id="btn-quit" class="menu-btn ghost">QUIT TO TITLE</button>
+    </div>
+  </div>
+
+  <!-- Busted / Wasted / Ending -->
+  <div id="endcard" class="overlay hidden">
+    <div class="panel">
+      <h2 id="endcard-title">BUSTED</h2>
+      <p id="endcard-text"></p>
+      <button id="btn-endcard" class="menu-btn">CONTINUE</button>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
