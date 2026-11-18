@@ -1,71 +1,46 @@
-// config.js — every shared constant for Port Azura: world size, road grid,
-// physics tuning, wanted tuning and the sunset palette. One place to tune.
+// Port Azura's fixed geography and tuning. Streets form a grid: avenues run
+// north-south (constant x), streets run east-west (constant z). The bay and
+// Azura Beach sit along the south edge (large positive z).
+export const AVENUES = [-225, -180, -135, -90, -45, 0, 45, 90, 135, 180, 225];
+export const STREETS = [-225, -180, -135, -90, -45, 0, 45, 90, 135, 180];
+export const ROAD_HALF = 7;          // half the width of a road
+export const WORLD_EDGE = 250;       // playable bounds on x and z
+export const BEACH_Z = 196;          // sand starts here
+export const SEA_Z = 238;            // open water starts here
 
-export const WORLD = {
-  halfSize: 264,          // ground plane extends this far from the centre
-  roadLines: [-200, -160, -120, -80, -40, 0, 40, 80, 120, 160, 200], // road centre lines on both axes
-  roadHalfWidth: 7,       // asphalt half width; sidewalks beyond it
-  blockSize: 40,
-  seaLevel: 0,
-  beachX: 226,            // sand starts here, water beyond x = 244
-  waterX: 244,
+// Named places of interest. x/z is the street-side point you walk or drive
+// to; each sits by an intersection so there is always room to arrive.
+export const POIS = {
+  cafe:     { x: 0,    z: 45,   name: 'Café Sol',       short: 'CAFÉ SOL' },
+  garage:   { x: -135, z: 90,   name: "Lucia's Garage", short: 'GARAGE' },
+  police:   { x: 45,   z: -45,  name: 'Azura PD',       short: 'AZURA PD' },
+  hospital: { x: -90,  z: -90,  name: 'St. Marina Hospital', short: 'HOSPITAL' },
+  bank:     { x: 45,   z: 0,    name: 'Banco Azura',    short: 'BANCO AZURA' },
+  hotel:    { x: 135,  z: -45,  name: 'Hotel Verano',   short: 'HOTEL VERANO' },
+  home:     { x: -90,  z: 135,  name: 'Casa Serra',     short: 'CASA SERRA' },
+  dock:     { x: 180,  z: 188,  name: 'Old Port Dock',  short: 'THE DOCK' },
+  marina:   { x: -180, z: 188,  name: 'Azura Marina',   short: 'MARINA' },
 };
 
-export const PLAYER = {
-  walkSpeed: 6.2,
-  sprintSpeed: 10.5,
-  radius: 0.55,
-  maxHealth: 100,
-  punchRange: 1.9,
-  punchDamage: 34,
-  shotDamage: 40,
-  shotRange: 90,
-  shotCooldown: 0.22,
+export function districtAt(x, z) {
+  if (z >= BEACH_Z - 8) return 'Azura Beach';
+  if (x <= -70 && z >= 24) return 'Marina District';
+  if (x >= 70 && z >= 24) return 'Old Port';
+  if (x <= -70) return 'Palm Heights';
+  if (x >= 70) return 'Verano Flats';
+  return 'Downtown Azura';
+}
+
+// Vehicle archetypes. topSpeed/accel in metres and metres per second.
+export const VEHICLE_TYPES = {
+  sedan:    { topSpeed: 27, accel: 13.5, grip: 2.6, len: 4.3, wid: 1.9, hp: 130 },
+  coupe:    { topSpeed: 31, accel: 16,   grip: 2.9, len: 4.1, wid: 1.85, hp: 120 },
+  van:      { topSpeed: 22, accel: 10,   grip: 2.2, len: 5.2, wid: 2.1, hp: 190 },
+  pickup:   { topSpeed: 25, accel: 12,   grip: 2.4, len: 5.0, wid: 2.0, hp: 170 },
+  taxi:     { topSpeed: 27, accel: 13.5, grip: 2.6, len: 4.3, wid: 1.9, hp: 130 },
+  cruiser:  { topSpeed: 32, accel: 17,   grip: 3.0, len: 4.5, wid: 1.95, hp: 210 },
+  armoured: { topSpeed: 21, accel: 9,    grip: 2.1, len: 5.6, wid: 2.2, hp: 420 },
 };
-
-export const CAR = {
-  accel: 15.5,
-  brake: 26,
-  reverseMax: 9,
-  drag: 0.55,
-  grip: 3.4,              // how fast heading follows steering
-  maxSteer: 0.62,
-  radius: 1.55,
-  maxHealth: 100,
-};
-
-export const WANTED = {
-  maxStars: 5,
-  decaySeconds: 26,       // lose a star after this long unseen & clean
-  bustedFillTime: 2.4,    // seconds in a cop's grip before BUSTED
-  bustedRange: 7.5,
-  policeCap: [0, 2, 3, 4, 6, 8],   // cruisers by star count
-  policeSpeed: [0, 15.5, 17.5, 19.5, 21.5, 23.5],
-};
-
-export const PALETTE = {
-  sky: 0x2e4a7a,
-  skyHorizon: 0xffb37a,
-  fog: 0xe8a06a,
-  sun: 0xffd9a0,
-  asphalt: 0x35373d,
-  sidewalk: 0x9b8f7d,
-  sand: 0xe6cf9e,
-  water: 0x1d6f8e,
-  grass: 0x5d8a4a,
-  buildingTones: [0xd9c9a8, 0xc7b299, 0xe8dcc0, 0xbfae94, 0xd4b48c, 0xc9c2b4, 0xe3b7a0, 0xa8bfc4],
-  carPaints: [0xc23b2e, 0x2e6fc2, 0xe8b13a, 0x3fae6a, 0xe6e2da, 0x30323a, 0x8e44ad, 0xe67e22, 0x16a3a3, 0xd6336c],
-  policePaint: 0xf2f2f0,
-  taxiPaint: 0xf5b81d,
-};
-
-export const DISTRICTS = [
-  { name: 'Marina District', x: 150, z: 150 },
-  { name: 'Old Port', x: 170, z: -160 },
-  { name: 'Palm Heights', x: -150, z: 150 },
-  { name: 'Downtown Azura', x: -20, z: -20 },
-  { name: 'Verano Flats', x: -160, z: -160 },
-  { name: 'Azura Beach', x: 235, z: 0 },
-];
-
+export const CAR_COLORS = [0xc23b2e, 0x2e6fc2, 0xe8e4da, 0x30343c, 0x3fae6a, 0xe0a52c, 0x7a4fc0, 0xbfc5cc, 0x843c28, 0x2a9d8f];
 export const SAVE_KEY = 'port-azura-heat-save-v1';
+export const PLAYER_SPAWN = { x: -16, z: 45, angle: Math.PI / 2 };

@@ -1,111 +1,131 @@
-// player.js — Marco Serra, the wheelman you play: on-foot movement with a
-// walk/run animation, entering and leaving cars, health and regeneration.
-// The camera and the driving inputs live in main.js; this class owns the man.
+import { clamp, angleDelta, dist2d } from './rng.js';
+import { collideCircle } from './city.js';
+import { makePerson, animatePerson } from './people.js';
 
-import { PLAYER, WORLD } from './config.js';
-import { angleDelta, clamp, dist2d } from './rng.js';
-import { moveWithColliders } from './city.js';
-import { makePersonMesh, animateWalk } from './people.js';
-
+// Marco Serra: walks, sprints, jumps, punches, shoots — and drives whatever
+// he can steal. mode is 'foot' or 'car'; when driving, x/z mirror the car.
 export class Player {
   constructor(scene, rng) {
-    this.mesh = makePersonMesh(rng, { shirt: 0x0f766e, pants: 0x22242a, skin: 0xc68863, hair: 0x14100c });
-    this.mesh.scale.setScalar(1.04);
+    this.mesh = makePerson(rng, { skin: 0xc98d5f, shirt: 0x20706b, pants: 0x2b2d42, hat: false });
     scene.add(this.mesh);
-    this.x = -40;
-    this.z = 20;
-    this.angle = Math.PI / 2;
+    this.x = 0; this.z = 0; this.angle = 0;
+    this.y = 0; this.vy = 0;
     this.speed = 0;
-    this.health = PLAYER.maxHealth;
-    this.mode = 'foot';           // 'foot' | 'car'
-    this.vehicle = null;
-    this.phase = 0;
-    this.verticalV = 0;
-    this.y = 0;
-    this.timeSinceDamage = 99;
-    this.shotCooldown = 0;
-  }
-
-  get dead() { return this.health <= 0; }
-
-  placeAt(x, z, angle = this.angle) {
-    this.x = x;
-    this.z = z;
-    this.angle = angle;
-    this.syncMesh();
-  }
-
-  // move: {x, z} camera-relative wish direction (-1..1), sprint, jump.
-  updateOnFoot(dt, move, colliders) {
-    const moving = Math.abs(move.x) > 0.01 || Math.abs(move.z) > 0.01;
-    const target = moving ? (move.sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed) : 0;
-    this.speed += clamp(target - this.speed, -dt * 30, dt * 18);
-    if (moving) {
-      const want = Math.atan2(move.x, move.z);
-      this.angle += clamp(angleDelta(this.angle, want), -dt * 11, dt * 11);
-      const dx = Math.sin(this.angle) * this.speed * dt * clamp(1 - Math.abs(angleDelta(this.angle, want)) / 1.6, 0.25, 1);
-      const dz = Math.cos(this.angle) * this.speed * dt * clamp(1 - Math.abs(angleDelta(this.angle, want)) / 1.6, 0.25, 1);
-      const res = moveWithColliders(colliders, this.x, this.z, dx, dz, PLAYER.radius);
-      this.x = res.x;
-      this.z = res.z;
-    }
-    if (move.jump && this.y <= 0.01) this.verticalV = 4.6;
-    this.verticalV -= 12.5 * dt;
-    this.y = Math.max(0, this.y + this.verticalV * dt);
-    this.phase += this.speed * dt * 2.5;
-    this.timeSinceDamage += dt;
-    if (this.timeSinceDamage > 5 && this.health > 0) {
-      this.health = Math.min(PLAYER.maxHealth, this.health + dt * 3.2);
-    }
-    this.shotCooldown = Math.max(0, this.shotCooldown - dt);
-    this.syncMesh();
-  }
-
-  syncMesh() {
-    if (this.mode === 'car') {
-      this.mesh.visible = false;
-      return;
-    }
-    this.mesh.visible = true;
-    this.mesh.position.set(this.x, this.y + Math.abs(Math.sin(this.phase)) * 0.045, this.z);
-    this.mesh.rotation.y = this.angle;
-    animateWalk(this.mesh, this.phase, this.speed > PLAYER.walkSpeed + 0.5 ? 1.3 : 1);
-  }
-
-  enterCar(vehicle) {
-    this.mode = 'car';
-    this.vehicle = vehicle;
-    vehicle.driver = 'player';
-    this.mesh.visible = false;
-  }
-
-  exitCar(colliders) {
-    const v = this.vehicle;
-    if (!v) return;
-    v.driver = null;
-    // Step out on the left side of the car, clear of its body.
-    const sideX = Math.cos(v.angle);
-    const sideZ = -Math.sin(v.angle);
-    let px = v.x + sideX * -2.1;
-    let pz = v.z + sideZ * -2.1;
-    const res = moveWithColliders(colliders, v.x, v.z, px - v.x, pz - v.z, PLAYER.radius);
-    px = res.x;
-    pz = res.z;
     this.mode = 'foot';
     this.vehicle = null;
-    this.placeAt(px, pz, v.angle);
-    void dist2d;
-    void WORLD;
+    this.health = 100;
+    this.maxHealth = 100;
+    this.cash = 0;
+    this.walkPhase = 0;
+    this.regenTimer = 0;
+    this.dead = false;
   }
-
-  damage(amount) {
+  get fx() { return Math.sin(this.angle); }
+  get fz() { return Math.cos(this.angle); }
+  placeAt(x, z, angle = 0) {
+    if (this.mode === 'car' && this.vehicle) {
+      this.vehicle.x = x; this.vehicle.z = z; this.vehicle.angle = angle; this.vehicle.speed = 0;
+      this.vehicle.syncMesh();
+    }
+    this.x = x; this.z = z; this.angle = angle;
+    this.y = 0; this.vy = 0;
+    this.syncMesh();
+  }
+  // input: {x: strafe -1..1, z: forward -1..1, sprint, jump} in facing space.
+  updateOnFoot(dt, input, colliders) {
+    const ix = clamp(input.x || 0, -1, 1);
+    const iz = clamp(input.z || 0, -1, 1);
+    const mag = Math.hypot(ix, iz);
+    let vx = 0, vz = 0;
+    if (mag > 0.01) {
+      const fx = this.fx, fz = this.fz;
+      const rx = -fz, rz = fx; // right hand in facing space
+      let mx = fx * iz + rx * ix;
+      let mz = fz * iz + rz * ix;
+      const ml = Math.hypot(mx, mz) || 1;
+      mx /= ml; mz /= ml;
+      const top = input.sprint ? 8.2 : 5.2;
+      vx = mx * top * Math.min(1, mag);
+      vz = mz * top * Math.min(1, mag);
+      const want = Math.atan2(mx, mz);
+      this.angle += angleDelta(this.angle, want) * Math.min(1, dt * 12);
+    }
+    this.x += vx * dt;
+    this.z += vz * dt;
+    const pos = { x: this.x, z: this.z };
+    collideCircle(pos, 0.5, colliders);
+    this.x = pos.x; this.z = pos.z;
+    this.speed = Math.hypot(vx, vz);
+    // A small hop.
+    if (input.jump && this.y <= 0) this.vy = 4.6;
+    if (this.y > 0 || this.vy > 0) {
+      this.y += this.vy * dt;
+      this.vy -= 13 * dt;
+      if (this.y <= 0) { this.y = 0; this.vy = 0; }
+    }
+    this.walkPhase += dt * this.speed * 2.6;
+    this.syncMesh();
+  }
+  enterCar(car) {
+    if (this.mode === 'car' || !car || car.dead) return false;
+    this.mode = 'car';
+    this.vehicle = car;
+    car.driver = 'player';
+    this.x = car.x;
+    this.z = car.z;
+    this.angle = car.angle;
+    this.mesh.visible = false;
+    return true;
+  }
+  exitCar(colliders) {
+    if (this.mode !== 'car' || !this.vehicle) return;
+    const car = this.vehicle;
+    car.driver = null;
+    car.speed = 0;
+    this.mode = 'foot';
+    this.vehicle = null;
+    // Step out on the left side of the car.
+    const lx = -car.fz, lz = car.fx;
+    const pos = { x: car.x + lx * 2.1, z: car.z + lz * 2.1 };
+    collideCircle(pos, 0.5, colliders || []);
+    this.x = pos.x; this.z = pos.z;
+    this.angle = car.angle;
+    this.mesh.visible = true;
+    this.syncMesh();
+  }
+  nearestCar(cars, maxDist = 3.6) {
+    let best = null, bd = maxDist;
+    for (const c of cars) {
+      if (c.dead) continue;
+      const d = dist2d(this.x, this.z, c.x, c.z);
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best;
+  }
+  hurt(amount) {
     if (this.dead) return;
-    this.health = Math.max(0, this.health - amount);
-    this.timeSinceDamage = 0;
+    this.health -= amount;
+    this.regenTimer = 0;
+    if (this.health <= 0) {
+      this.health = 0;
+      this.dead = true;
+    }
   }
-
-  healFull() {
-    this.health = PLAYER.maxHealth;
-    this.timeSinceDamage = 99;
+  heal(amount) { this.health = clamp(this.health + amount, 0, this.maxHealth); }
+  update(dt) {
+    if (this.mode === 'car' && this.vehicle) {
+      this.x = this.vehicle.x;
+      this.z = this.vehicle.z;
+      this.angle = this.vehicle.angle;
+      this.speed = Math.abs(this.vehicle.speed);
+    }
+    // Slow health regen after a quiet spell.
+    this.regenTimer += dt;
+    if (!this.dead && this.regenTimer > 8 && this.health > 0) this.heal(2.2 * dt);
+  }
+  syncMesh() {
+    this.mesh.position.set(this.x, this.y, this.z);
+    this.mesh.rotation.y = this.angle;
+    if (this.mode === 'foot') animatePerson(this.mesh, this.walkPhase, this.speed / 5);
   }
 }

@@ -1,59 +1,43 @@
-// shots.js — screenshot staging for the entry's screenshots/ folder. Opening
-// the game with ?shot=<name>&seed=<n> skips the menu, freezes the mission
-// director, and poses a real in-game scene (cover, chase, mission, city)
-// that a headless browser captures. Staged vehicles are frozen so the
-// composition holds while the rest of the city lives around them. The game
-// itself is untouched by this: no query string, no staging.
-
-export function applyShot(game, name) {
-  const { player, police, hud } = game;
-  game.freezeDirector = true;
-  hud.show();
-
+// Staged scenes for the entry screenshots (?shot=cover|chase|mission|city).
+// Each arranges the live game — real player, cars, police and HUD — then
+// flags __SHOT_READY so the capture script can take the picture.
+export function stageShot(game, name) {
+  const g = game;
+  const poi = g.city.poi;
   if (name === 'cover') {
-    // Marco and the gold coupe at the marina, palms and the sea behind.
-    const coupe = game.spawnSpecial('coupe', 0xe8b13a, 206, 53, -2.2, {});
-    coupe.frozen = true;
-    player.placeAt(202.6, 50.6, 2.65);
-    hud.setObjective('Steal the gold coupe at the marina');
-    game.state.cash = 250;
-    game.cameraOverride = { pos: [196.5, 1.8, 43.8], look: [205.5, 1.4, 52.5] };
+    const coupe = g.spawnSpecial('coupe', -154, 185, 0.5, 0xf7b500);
+    // Clear the stage: no parked traffic photobombing the coupe.
+    for (const c of g.traffic.cars) {
+      if (c !== coupe && Math.hypot(c.x - coupe.x, c.z - coupe.z) < 16) { c.x += 42; c.syncMesh(); }
+    }
+    g.player.placeAt(-160, 178, 0.35);
+    g.camYaw = 0.35; g.camPitch = 0.16;
+    g.hud.setObjective('Steal the gold coupe at the marina', 'Lucia wants it at her garage');
+    g.director.marker = { x: -154, z: 185 };
   } else if (name === 'chase') {
-    // Three stars on a downtown street: Marco's coupe ahead, cruisers close.
-    const coupe = game.spawnSpecial('coupe', 0xc23b2e, 64, 3.2, Math.PI / 2, {});
-    coupe.speed = 17;
-    coupe.frozen = true;
-    player.enterCar(coupe);
-    police.setWanted(3);
-    police.holdSpawns = true;
-    const c1 = police.spawnCruiser(0, 0);
-    c1.x = 49; c1.z = 4.8; c1.angle = Math.PI / 2; c1.speed = 17.5; c1.frozen = true; c1.syncMesh();
-    const c2 = police.spawnCruiser(0, 0);
-    c2.x = 42.5; c2.z = -1.9; c2.angle = Math.PI / 2; c2.speed = 18; c2.frozen = true; c2.syncMesh();
-    hud.setObjective('Lose the heat!');
-    game.state.cash = 1450;
-    game.cameraOverride = { pos: [47.5, 4.4, -9.5], look: [68, 1.2, 3.5] };
+    const car = g.spawnSpecial('coupe', 45, 40, Math.PI, 0xc23b2e);
+    g.player.placeAt(45, 40, Math.PI);
+    g.player.enterCar(car);
+    car.speed = 13;
+    g.police.setWanted(4);
+    const spots = [[41.5, 58], [48.5, 66], [45, 78]];
+    for (const [x, z] of spots) {
+      const c = g.police.spawnCruiser(g.player);
+      c.x = x; c.z = z; c.angle = Math.PI; c.speed = 12;
+      c.syncMesh();
+    }
+    g.camYaw = Math.PI; g.camPitch = 0.18;
+    g.hud.setObjective('Outrun the Azura PD', 'Break their line of sight to cool the heat');
   } else if (name === 'mission') {
-    // The armoured-van job on the coast road, beacon up at the port.
-    const van = game.spawnSpecial('van', 0x707a8a, 203, -98, Math.PI, {});
-    van.speed = 12;
-    van.frozen = true;
-    player.enterCar(van);
-    police.setWanted(2);
-    police.holdSpawns = true;
-    const c1 = police.spawnCruiser(0, 0);
-    c1.x = 203; c1.z = -80; c1.angle = Math.PI; c1.speed = 13; c1.frozen = true; c1.syncMesh();
-    game.director.marker.visible = true;
-    game.director.marker.position.set(206, 17, -154);
-    hud.setObjective('Take the van to Port Azura');
-    game.state.cash = 2900;
-    game.shotObjective = { x: 206, z: -154 };
-    game.cameraOverride = { pos: [194.5, 4.6, -117], look: [204, 1.3, -95] };
-  } else {
-    // 'city': the downtown crossing at golden hour, traffic flowing.
-    player.placeAt(-8, 14, -0.7);
-    hud.setObjective('Meet Lucia at Café Sol');
-    game.state.cash = 250;
-    game.cameraOverride = { pos: [-26, 9.5, 30], look: [30, 6, -30] };
+    g.player.placeAt(13.5, 50.5, -2.5);
+    g.camYaw = -2.5; g.camPitch = 0.13;
+    g.director.state = 'intro';
+    g.director.dialogueActive = true;
+    g.hud.dialogue('Lucia', 'Marco Serra. Back in Port Azura and already smelling of trouble.');
+    g.hud.setObjective('Talk to Lucia', 'She always has work for a wheelman');
+  } else { // city
+    g.player.placeAt(0, -20, 0.4);
+    g.camOverride = { x: 86, y: 92, z: 128, lx: -10, ly: 0, lz: -30 };
+    g.hud.setObjective('Free roam Port Azura', 'Six districts, one bay, endless trouble');
   }
 }

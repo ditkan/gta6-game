@@ -11,78 +11,73 @@
 </script>
 </head>
 <body>
-<div id="app">
-  <canvas id="gl"></canvas>
+<canvas id="view"></canvas>
 
-  <!-- In-game HUD -->
-  <div id="hud" class="hidden">
-    <div id="topbar">
-      <div id="wanted" title="Wanted level"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-      <div id="clock">17:42</div>
-    </div>
-    <div id="objective" class="hidden"><span id="objective-tag">OBJECTIVE</span><span id="objective-text"></span></div>
-    <div id="toast" class="hidden"></div>
-    <div id="dialogue" class="hidden"><div id="dialogue-name"></div><div id="dialogue-text"></div><div id="dialogue-hint">ENTER ▸</div></div>
-    <div id="bottomleft">
-      <canvas id="minimap" width="220" height="220"></canvas>
-      <div id="district">Marina District</div>
-    </div>
-    <div id="bottomright">
-      <div id="cash">$0</div>
-      <div id="weapon">PISTOL · ∞</div>
-      <div id="bars">
-        <div class="bar-row"><span class="bar-label">HP</span><div class="bar"><div id="health-fill"></div></div></div>
-        <div class="bar-row"><span class="bar-label">CAR</span><div class="bar"><div id="car-fill"></div></div></div>
-      </div>
-      <div id="speedo" class="hidden">0 km/h</div>
-    </div>
-    <div id="busted-meter" class="hidden"><div id="busted-fill"></div><span>BUSTED</span></div>
-    <div id="crosshair" class="hidden">·</div>
-    <div id="prompt" class="hidden"></div>
-    <div id="mission-banner" class="hidden"><div id="mission-banner-title"></div><div id="mission-banner-sub"></div></div>
+<div id="hud" class="hidden">
+  <div id="objective-box">
+    <div id="objective-label">OBJECTIVE</div>
+    <div id="objective-text">Meet Lucia at Café Sol</div>
+    <div id="objective-sub"></div>
   </div>
-
-  <!-- Title screen -->
-  <div id="menu">
-    <div id="menu-card">
-      <div id="logo">PORT AZURA</div>
-      <div id="logo-sub">— H E A T —</div>
-      <p id="tagline">One wheelman. One sun-soaked city. Every cop in Port Azura.</p>
-      <button id="btn-new" class="menu-btn">NEW GAME</button>
-      <button id="btn-continue" class="menu-btn" disabled>CONTINUE</button>
-      <button id="btn-how" class="menu-btn ghost">HOW TO PLAY</button>
-      <div id="how" class="hidden">
-        <p><b>W A S D</b> move / drive · <b>Mouse</b> camera (click the game to lock the pointer)</p>
-        <p><b>Shift</b> sprint · <b>Space</b> jump / handbrake · <b>F</b> enter / exit car</p>
-        <p><b>Left mouse</b> shoot · <b>Q</b> punch · <b>Esc</b> pause · <b>M</b> mute · <b>Enter</b> advance dialogue</p>
-        <p>Steal cars, run Lucia's jobs, dodge the Azura PD. Five stars is a bad day.</p>
-      </div>
-      <p id="menu-foot">An original open-world crime game. All names, places and people are fictional.</p>
-    </div>
+  <div id="top-right">
+    <div id="stars"></div>
+    <div id="clock">17:30</div>
   </div>
-
-  <!-- Pause -->
-  <div id="pause" class="overlay hidden">
-    <div class="panel">
-      <h2>PAUSED</h2>
-      <p id="pause-stats"></p>
-      <button id="btn-resume" class="menu-btn">RESUME</button>
-      <button id="btn-save" class="menu-btn">SAVE GAME</button>
-      <button id="btn-quit" class="menu-btn ghost">QUIT TO TITLE</button>
-    </div>
+  <div id="bottom-left">
+    <canvas id="minimap" width="220" height="220"></canvas>
+    <div id="district">Downtown Azura</div>
   </div>
-
-  <!-- Busted / Wasted / Ending -->
-  <div id="endcard" class="overlay hidden">
-    <div class="panel">
-      <h2 id="endcard-title">BUSTED</h2>
-      <p id="endcard-text"></p>
-      <button id="btn-endcard" class="menu-btn">CONTINUE</button>
-    </div>
+  <div id="bottom-right">
+    <div id="cash">$0</div>
+    <div id="weapon">FISTS</div>
+    <div class="bar-row"><span>HP</span><div class="bar"><div id="hp-fill"></div></div></div>
+    <div class="bar-row" id="car-row"><span>CAR</span><div class="bar"><div id="car-fill"></div></div></div>
+    <div id="speed"></div>
   </div>
-
-  <div id="fade"></div>
+  <div id="crosshair"></div>
+  <div id="banner" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+  <div id="dialogue" class="hidden">
+    <div id="dialogue-name">Lucia</div>
+    <div id="dialogue-text"></div>
+    <div id="dialogue-hint">Enter ▸</div>
+  </div>
+  <div id="vignette"></div>
 </div>
+
+<div id="menu">
+  <div class="menu-card">
+    <div class="menu-kicker">PORT AZURA</div>
+    <h1>HEAT</h1>
+    <p class="menu-sub">An open-world crime game. Six jobs, one wheelman,<br>a whole city that wants him caught.</p>
+    <button id="btn-new">NEW GAME</button>
+    <button id="btn-continue" class="hidden">CONTINUE</button>
+    <div class="controls">
+      <div><b>WASD</b> move / drive</div><div><b>Mouse</b> camera · <b>Click</b> shoot</div>
+      <div><b>F</b> enter / exit car</div><div><b>E</b> talk / take a job</div>
+      <div><b>Shift</b> sprint · <b>Space</b> jump / handbrake</div><div><b>Q</b> punch · <b>Esc</b> pause · <b>M</b> mute</div>
+    </div>
+    <p class="menu-foot">Everything runs offline from these files. Progress saves in your browser.</p>
+  </div>
+</div>
+
+<div id="pause" class="hidden">
+  <div class="menu-card">
+    <h2>PAUSED</h2>
+    <div id="pause-stats"></div>
+    <button id="btn-resume">RESUME</button>
+    <button id="btn-restart">RESTART STORY</button>
+  </div>
+</div>
+
+<div id="endcard" class="hidden">
+  <div class="menu-card">
+    <h2 id="endcard-title">BUSTED</h2>
+    <p id="endcard-text"></p>
+    <button id="btn-again">BACK ON THE STREET</button>
+  </div>
+</div>
+
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
